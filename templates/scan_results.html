@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+{% block title %}Scan Results{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+        <h3 class="fw-bold mb-1">
+            <i class="bi bi-clipboard2-pulse me-2"></i>Scan Results
+        </h3>
+        <p class="text-muted mb-0 text-break">{{ scan.target_url }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('report', scan_id=scan.id) }}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-printer me-1"></i>Report
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>New Scan
+        </a>
+    </div>
+</div>
+
+{% if scan.status == 'error' %}
+<div class="alert alert-danger glass-card">
+    <i class="bi bi-exclamation-octagon-fill me-2"></i>
+    <strong>Scan Error:</strong> The scan encountered an error. The target may be unreachable or blocking requests.
+</div>
+{% endif %}
+
+{% if scan.status == 'cancelled' %}
+<div class="alert alert-warning glass-card">
+    <i class="bi bi-x-octagon-fill me-2"></i>
+    <strong>Scan Cancelled:</strong> This scan was manually stopped. The results below are partial — only vulnerabilities found before cancellation are shown.
+</div>
+{% endif %}
+
+<!-- Threat Score + Summary Row -->
+<div class="row g-3 mb-4">
+    <!-- Threat Score Gauge -->
+    <div class="col-md-4">
+        <div class="glass-card p-4 text-center h-100">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-speedometer2 me-2"></i>Threat Score</h6>
+            <div class="threat-gauge-wrapper">
+                <canvas id="threatGauge" width="200" height="130"></canvas>
+                <div class="threat-score-value {% if scan.threat_score|default(0) >= 70 %}text-danger{% elif scan.threat_score|default(0) >= 40 %}text-warning{% else %}text-success{% endif %}">
+                    {{ scan.threat_score|default(0) }}<small>/100</small>
+                </div>
+                <div class="threat-label mt-1">
+                    {% if scan.threat_score|default(0) >= 70 %}
+                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Critical Risk</span>
+                    {% elif scan.threat_score|default(0) >= 40 %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle-fill me-1"></i>Moderate Risk</span>
+                    {% else %}
+                    <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i>Low Risk</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="col-md-8">
+        <div class="glass-card p-4 h-100">
+            <h6 class="fw-semibold mb-3"><i class="bi bi-grid-3x3-gap me-2"></i>Summary</h6>
+            <div class="row g-3 mb-3">
+                <div class="col-3">
+                    <div class="text-center">
+                        <div class="fs-2 fw-bold text-danger">{{ scan.high }}</div>
+                        <small class="text-muted">High</small>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="text-center">
+                        <div class="fs-2 fw-bold text-warning">{{ scan.medium }}</div>
+                        <small class="text-muted">Medium</small>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="text-center">
+                        <div class="fs-2 fw-bold text-info">{{ scan.low }}</div>
+                        <small class="text-muted">Low</small>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="text-center">
+                        <div class="fs-2 fw-bold text-secondary">{{ scan.info }}</div>
+                        <small class="text-muted">Info</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-2 small text-muted">
+                <div class="col-sm-4"><i class="bi bi-hash me-1"></i>Total: <strong class="text-body">{{ scan.total_vulns }}</strong></div>
+                <div class="col-sm-4"><i class="bi bi-calendar3 me-1"></i>{{ scan.scan_date }}</div>
+                <div class="col-sm-4"><i class="bi bi-stopwatch me-1"></i>
+                    {% if not scan.duration_seconds %}—
+                    {% elif scan.duration_seconds < 60 %}{{ scan.duration_seconds | round(1) }}s
+                    {% else %}{{ (scan.duration_seconds / 60) | int }}m {{ (scan.duration_seconds % 60) | round }}s
+                    {% endif %}
+                    <span class="badge bg-{{ 'success' if scan.status == 'completed' else 'danger' }} ms-1">{{ scan.status | capitalize }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+{% if scan.total_vulns > 0 %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="glass-card p-4 chart-container h-100">
+            <h6 class="fw-semibold mb-3">
+                <i class="bi bi-pie-chart-fill me-2" style="color: var(--vx-primary-light);"></i>Severity Distribution
+            </h6>
+            <div class="chart-wrapper" style="position: relative; height: 260px; display: flex; align-items: center; justify-content: center;">
+                <canvas id="severityPieChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="glass-card p-4 chart-container h-100">
+            <h6 class="fw-semibold mb-3">
+                <i class="bi bi-bar-chart-line-fill me-2" style="color: var(--vx-accent);"></i>Vulnerabilities by Type
+            </h6>
+            <div class="chart-wrapper" style="position: relative; height: 260px;">
+                <canvas id="vulnTypeBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Vulnerability List -->
+<h5 class="fw-semibold mb-3">
+    <i class="bi bi-bug-fill me-2"></i>Vulnerability Details
+</h5>
+
+{% if vulnerabilities %}
+{% for vuln in vulnerabilities %}
+<div class="glass-card vuln-card p-3 mb-3 vuln-{{ vuln.risk_level|lower }}">
+    <div class="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge risk-badge risk-{{ vuln.risk_level|lower }}">
+                {% if vuln.risk_level == 'High' %}
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                {% elif vuln.risk_level == 'Medium' %}
+                <i class="bi bi-exclamation-circle-fill"></i>
+                {% elif vuln.risk_level == 'Low' %}
+                <i class="bi bi-info-circle-fill"></i>
+                {% else %}
+                <i class="bi bi-info-circle"></i>
+                {% endif %}
+                {{ vuln.risk_level }}
+            </span>
+            <!-- Vuln-type badge with distinct colours per type -->
+            {% if vuln.vuln_type == 'SQL Injection' %}
+            <span class="badge" style="background:rgba(248,113,113,0.18);color:#f87171;border:1px solid rgba(248,113,113,0.25);">
+                <i class="bi bi-database-fill-lock me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Cross-Site Scripting (XSS)' %}
+            <span class="badge" style="background:rgba(248,113,113,0.18);color:#f87171;border:1px solid rgba(248,113,113,0.25);">
+                <i class="bi bi-code-slash me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Security Misconfiguration' %}
+            <span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.22);">
+                <i class="bi bi-shield-fill-exclamation me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'CSRF' %}
+            <span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.22);">
+                <i class="bi bi-person-fill-slash me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Directory Traversal' %}
+            <span class="badge" style="background:rgba(248,113,113,0.18);color:#f87171;border:1px solid rgba(248,113,113,0.25);">
+                <i class="bi bi-folder-symlink-fill me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Sensitive File Exposure' %}
+            <span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.22);">
+                <i class="bi bi-file-earmark-lock2-fill me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Sensitive Data Exposure' %}
+            <span class="badge" style="background:rgba(248,113,113,0.18);color:#f87171;border:1px solid rgba(248,113,113,0.25);">
+                <i class="bi bi-eye-fill me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Clickjacking' %}
+            <span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.22);">
+                <i class="bi bi-window-stack me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Open Redirect' %}
+            <span class="badge" style="background:rgba(56,189,248,0.15);color:#38bdf8;border:1px solid rgba(56,189,248,0.22);">
+                <i class="bi bi-sign-turn-right-fill me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Weak Authentication' %}
+            <span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.22);">
+                <i class="bi bi-key-fill me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Information Disclosure' %}
+            <span class="badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.22);">
+                <i class="bi bi-info-circle-fill me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% elif vuln.vuln_type == 'Server-Side Request Forgery (SSRF)' %}
+            <span class="badge" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                <i class="bi bi-arrow-repeat me-1"></i>{{ vuln.vuln_type }}
+                <span style="font-size:0.6rem;opacity:0.8;margin-left:3px;">⚡ AI</span>
+            </span>
+            {% elif vuln.vuln_type == 'CORS Misconfiguration' %}
+            <span class="badge" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                <i class="bi bi-diagram-3-fill me-1"></i>{{ vuln.vuln_type }}
+                <span style="font-size:0.6rem;opacity:0.8;margin-left:3px;">⚡ AI</span>
+            </span>
+            {% elif vuln.vuln_type == 'Insecure Direct Object Reference (IDOR)' %}
+            <span class="badge" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                <i class="bi bi-person-fill-gear me-1"></i>{{ vuln.vuln_type }}
+                <span style="font-size:0.6rem;opacity:0.8;margin-left:3px;">⚡ AI</span>
+            </span>
+            {% elif 'Business Logic' in vuln.vuln_type or 'API Endpoint' in vuln.vuln_type %}
+            <span class="badge" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                <i class="bi bi-bezier2 me-1"></i>{{ vuln.vuln_type }}
+                <span style="font-size:0.6rem;opacity:0.8;margin-left:3px;">⚡ AI</span>
+            </span>
+            {% elif vuln.vuln_type == 'HTTP Parameter Pollution (HPP)' %}
+            <span class="badge" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                <i class="bi bi-stack me-1"></i>{{ vuln.vuln_type }}
+                <span style="font-size:0.6rem;opacity:0.8;margin-left:3px;">⚡ AI</span>
+            </span>
+            {% elif vuln.vuln_type == 'XML External Entity (XXE) Injection' %}
+            <span class="badge" style="background:rgba(139,92,246,0.15);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);">
+                <i class="bi bi-file-earmark-code-fill me-1"></i>{{ vuln.vuln_type }}
+                <span style="font-size:0.6rem;opacity:0.8;margin-left:3px;">⚡ AI</span>
+            </span>
+            {% else %}
+            <span class="badge" style="background:rgba(107,114,128,0.15);color:#9ca3af;border:1px solid rgba(107,114,128,0.2);">
+                <i class="bi bi-shield me-1"></i>{{ vuln.vuln_type }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    <p class="mb-2">{{ vuln.description }}</p>
+    <div class="small text-muted mb-2 text-break">
+        <i class="bi bi-link-45deg"></i> {{ vuln.url }}
+    </div>
+    {% if vuln.evidence %}
+    <div class="evidence-box p-2 mb-2">
+        <small class="text-muted d-block mb-1"><i class="bi bi-search"></i> Evidence</small>
+        <code class="text-break">{{ vuln.evidence }}</code>
+    </div>
+    {% endif %}
+    {% if vuln.solution %}
+    <div class="solution-box p-2">
+        <small class="text-success d-block mb-1"><i class="bi bi-lightbulb-fill"></i> Recommendation</small>
+        <small>{{ vuln.solution }}</small>
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="glass-card p-5 text-center">
+    <i class="bi bi-shield-check display-3 text-success mb-3 d-block"></i>
+    <h5 class="fw-semibold">No Vulnerabilities Found</h5>
+    <p class="text-muted mb-0">The scan did not detect any known vulnerabilities. This does not guarantee the site is
+        completely secure.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    // ---- Threat Score Gauge ----
+    const gaugeCanvas = document.getElementById('threatGauge');
+    if (gaugeCanvas) {
+        const ctx = gaugeCanvas.getContext('2d');
+        const score = {{ scan.threat_score|default(0) }};
+        const w = gaugeCanvas.width;
+        const h = gaugeCanvas.height;
+        const cx = w / 2;
+        const cy = h - 10;
+        const radius = 80;
+
+        // Background arc
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.PI, 2 * Math.PI, false);
+        ctx.lineWidth = 16;
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--vx-border') || 'rgba(255,255,255,0.06)';
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Score arc
+        const angle = Math.PI + (score / 100) * Math.PI;
+        const gradient = ctx.createLinearGradient(0, cy, w, cy);
+        gradient.addColorStop(0, '#34d399');
+        gradient.addColorStop(0.5, '#fbbf24');
+        gradient.addColorStop(1, '#f87171');
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.PI, angle, false);
+        ctx.lineWidth = 16;
+        ctx.strokeStyle = gradient;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+
+    // ---- Charts (only if vulns exist) ----
+    const totalVulns = {{ scan.total_vulns }};
+    if (totalVulns === 0) return;
+
+    const severityData = {
+        high: {{ scan.high }},
+        medium: {{ scan.medium }},
+        low: {{ scan.low }},
+        info: {{ scan.info }}
+    };
+
+    const vulnTypes = {};
+    {% for vuln in vulnerabilities %}
+    vulnTypes['{{ vuln.vuln_type }}'] = (vulnTypes['{{ vuln.vuln_type }}'] || 0) + 1;
+    {% endfor %}
+
+    let pieChart = null;
+    let barChart = null;
+
+    function getThemeColors(theme) {
+        const isDark = theme === 'dark';
+        return {
+            textPrimary: isDark ? '#e6edf3' : '#1f2937',
+            textMuted:   isDark ? '#8b949e' : '#6b7280',
+            tooltipBg:   isDark ? 'rgba(13, 17, 23, 0.95)' : 'rgba(255, 255, 255, 0.97)',
+            tooltipBorder: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            tooltipText: isDark ? '#e6edf3' : '#1f2937',
+            gridColor:   isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
+            borderAxis:  isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+            high:   { bg: isDark ? 'rgba(248,113,113,0.80)' : 'rgba(239,68,68,0.75)', border: isDark ? '#f87171' : '#ef4444', hover: isDark ? 'rgba(248,113,113,1)' : 'rgba(239,68,68,1)' },
+            medium: { bg: isDark ? 'rgba(251,191,36,0.80)' : 'rgba(245,158,11,0.75)', border: isDark ? '#fbbf24' : '#f59e0b', hover: isDark ? 'rgba(251,191,36,1)' : 'rgba(245,158,11,1)' },
+            low:    { bg: isDark ? 'rgba(56,189,248,0.80)' : 'rgba(14,165,233,0.75)', border: isDark ? '#38bdf8' : '#0ea5e9', hover: isDark ? 'rgba(56,189,248,1)' : 'rgba(14,165,233,1)' },
+            info:   { bg: isDark ? 'rgba(107,114,128,0.80)' : 'rgba(156,163,175,0.70)', border: isDark ? '#6b7280' : '#9ca3af', hover: isDark ? 'rgba(107,114,128,1)' : 'rgba(156,163,175,1)' },
+            barSat: isDark ? '70%' : '65%',
+            barLT:  isDark ? '65%' : '55%',
+            barLB:  isDark ? '45%' : '40%',
+            barAT:  isDark ? 0.9 : 0.85,
+            barAB:  isDark ? 0.5 : 0.35
+        };
+    }
+
+    function renderCharts(theme) {
+        if (!theme) theme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const c = getThemeColors(theme);
+        Chart.defaults.color = c.textMuted;
+        Chart.defaults.font.family = "'Inter', sans-serif";
+
+        if (pieChart) { pieChart.destroy(); pieChart = null; }
+        if (barChart) { barChart.destroy(); barChart = null; }
+
+        // Doughnut
+        const pieCtx = document.getElementById('severityPieChart').getContext('2d');
+        const centerPlugin = {
+            id: 'centerText',
+            afterDraw(chart) {
+                const { ctx, chartArea } = chart;
+                const cx = (chartArea.left + chartArea.right) / 2;
+                const cy = (chartArea.top + chartArea.bottom) / 2;
+                const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                ctx.save();
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.font = "800 2rem 'Inter', sans-serif";
+                ctx.fillStyle = c.textPrimary;
+                ctx.fillText(total, cx, cy - 6);
+                ctx.font = "500 0.65rem 'Inter', sans-serif";
+                ctx.fillStyle = c.textMuted;
+                ctx.fillText('TOTAL', cx, cy + 16);
+                ctx.restore();
+            }
+        };
+
+        const allSev = [
+            { label: 'High', value: severityData.high, ...c.high },
+            { label: 'Medium', value: severityData.medium, ...c.medium },
+            { label: 'Low', value: severityData.low, ...c.low },
+            { label: 'Info', value: severityData.info, ...c.info }
+        ].filter(s => s.value > 0);
+
+        pieChart = new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: allSev.map(s => s.label),
+                datasets: [{ data: allSev.map(s => s.value), backgroundColor: allSev.map(s => s.bg), borderColor: allSev.map(s => s.border), borderWidth: 2, hoverBackgroundColor: allSev.map(s => s.hover), hoverBorderWidth: 3, hoverOffset: 6 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '65%',
+                animation: { animateRotate: true, animateScale: true, duration: 900 },
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 14, usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: '500' } } },
+                    tooltip: { backgroundColor: c.tooltipBg, borderColor: c.tooltipBorder, borderWidth: 1, titleColor: c.tooltipText, bodyColor: c.tooltipText, cornerRadius: 8, padding: 10,
+                        callbacks: { label: (ctx) => { const t = ctx.dataset.data.reduce((a,b) => a+b, 0); return ` ${ctx.label}: ${ctx.parsed} (${((ctx.parsed/t)*100).toFixed(1)}%)`; } }
+                    }
+                }
+            },
+            plugins: [centerPlugin]
+        });
+
+        // Bar Chart
+        const barCtx = document.getElementById('vulnTypeBarChart').getContext('2d');
+        const tl = Object.keys(vulnTypes), tc = Object.values(vulnTypes);
+
+        const bg = tl.map((_, i) => { const g = barCtx.createLinearGradient(0,0,0,260); const h = (i*55+250)%360; g.addColorStop(0, `hsla(${h},${c.barSat},${c.barLT},${c.barAT})`); g.addColorStop(1, `hsla(${h},${c.barSat},${c.barLB},${c.barAB})`); return g; });
+        const bb = tl.map((_, i) => `hsla(${(i*55+250)%360},${c.barSat},${c.barLT},1)`);
+
+        barChart = new Chart(barCtx, {
+            type: 'bar',
+            data: { labels: tl, datasets: [{ label: 'Count', data: tc, backgroundColor: bg, borderColor: bb, borderWidth: 1.5, borderRadius: 6, borderSkipped: false, barPercentage: 0.55, categoryPercentage: 0.7 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                animation: { duration: 700, delay: (ctx) => ctx.dataIndex * 80 },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10, weight: '500' }, maxRotation: 45 }, border: { color: c.borderAxis } },
+                    y: { beginAtZero: true, grid: { color: c.gridColor }, ticks: { stepSize: 1, font: { size: 10 }, padding: 6 }, border: { display: false } }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: c.tooltipBg, borderColor: c.tooltipBorder, borderWidth: 1, titleColor: c.tooltipText, bodyColor: c.tooltipText, cornerRadius: 8, padding: 10,
+                        callbacks: { title: (i) => i[0].label, label: (ctx) => { const t = ctx.dataset.data.reduce((a,b)=>a+b,0); return ` ${ctx.parsed.y} vulns (${((ctx.parsed.y/t)*100).toFixed(1)}%)`; } }
+                    }
+                }
+            }
+        });
+    }
+
+    window.vultixRenderCharts = renderCharts;
+    document.addEventListener('DOMContentLoaded', () => renderCharts());
+})();
+</script>
+{% endblock %}

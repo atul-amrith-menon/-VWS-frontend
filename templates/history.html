@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Scan History{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 class="fw-bold mb-0">
+        <i class="bi bi-clock-history me-2"></i>Scan History
+    </h3>
+    <a href="{{ url_for('index') }}" class="btn btn-scan btn-sm">
+        <i class="bi bi-plus-circle me-1"></i>New Scan
+    </a>
+</div>
+
+{% if scans %}
+<div class="table-responsive">
+    <table class="table glass-table align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Target URL</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th class="text-center">High</th>
+                <th class="text-center">Medium</th>
+                <th class="text-center">Low</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Duration</th>
+                <th class="text-center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for scan in scans %}
+            <tr class="glass-table-row">
+                <td class="text-muted">{{ scan.id }}</td>
+                <td class="text-break" style="max-width: 280px;">
+                    <a href="{{ url_for('scan_status_page', scan_id=scan.id) }}"
+                        class="text-decoration-none text-light fw-medium">
+                        {{ scan.target_url }}
+                    </a>
+                </td>
+                <td class="text-muted small">{{ scan.scan_date }}</td>
+                <td>
+                    <span
+                        class="badge bg-{{ 'success' if scan.status == 'completed' else ('danger' if scan.status == 'error' else 'warning') }}">
+                        {{ scan.status | capitalize }}
+                    </span>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-danger bg-opacity-25 text-danger">{{ scan.high }}</span>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-warning bg-opacity-25 text-warning">{{ scan.medium }}</span>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-info bg-opacity-25 text-info">{{ scan.low }}</span>
+                </td>
+                <td class="text-center fw-bold">{{ scan.total_vulns }}</td>
+                <td class="text-center text-muted small">{{ scan.duration_seconds }}s</td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('scan_status_page', scan_id=scan.id) }}" class="btn btn-outline-light"
+                            title="View Results">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{{ url_for('report', scan_id=scan.id) }}" class="btn btn-outline-light" title="Report">
+                            <i class="bi bi-printer"></i>
+                        </a>
+                        <form action="{{ url_for('delete_scan_route', scan_id=scan.id) }}" method="POST"
+                            class="d-inline" onsubmit="return confirm('Delete this scan?');">
+                            <button type="submit" class="btn btn-outline-danger" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="glass-card p-5 text-center">
+    <i class="bi bi-inbox display-3 text-muted mb-3 d-block"></i>
+    <h5 class="fw-semibold">No Scans Yet</h5>
+    <p class="text-muted mb-3">Start your first vulnerability scan to see results here.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-scan">
+        <i class="bi bi-search me-2"></i>Start Scanning
+    </a>
+</div>
+{% endif %}
+{% endblock %}
