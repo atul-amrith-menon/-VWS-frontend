@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Scanning...{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <div class="scan-progress-wrapper mx-auto" style="max-width: 600px;">
+        <!-- Animated Scanner Icon -->
+        <div class="scanner-animation mb-4">
+            <div class="scanner-ring"></div>
+            <div class="scanner-ring ring-2"></div>
+            <div class="scanner-ring ring-3"></div>
+            <i class="bi bi-shield-lock-fill scanner-center-icon"></i>
+        </div>
+
+        <h3 class="fw-bold mb-2" id="scanPhase">Initializing Scan...</h3>
+        <p class="text-muted mb-4" id="scanMessage">Preparing to scan {{ scan.target_url }}</p>
+
+        <!-- Progress Bar -->
+        <div class="progress glass-progress mb-3" style="height: 12px;">
+            <div class="progress-bar progress-bar-animated progress-bar-striped bg-gradient-primary" role="progressbar"
+                id="scanProgressBar" style="width: 5%;">
+            </div>
+        </div>
+        <p class="small text-muted" id="progressPercent">5%</p>
+
+        <!-- Cancel Scan Button -->
+        <button id="cancelScanBtn" class="btn btn-outline-danger btn-sm mt-3" onclick="cancelScan()">
+            <i class="bi bi-x-octagon-fill me-1"></i>Cancel Scan
+        </button>
+
+        <!-- Target URL -->
+        <div class="glass-card p-3 mt-4">
+            <small class="text-muted">Target</small>
+            <p class="mb-0 fw-medium text-break">{{ scan.target_url }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const scanId = {{ scan.id | tojson }};
+    const pollInterval = 1500;
+    let isCancelling = false;
+
+    function cancelScan() {
+        // Prevent double-clicking
+        if (isCancelling) return;
+        isCancelling = true;
+
+        const btn = document.getElementById('cancelScanBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Cancelling...';
+
+        // Send cancel request to the backend
+        fetch(`/api/scan/cancel/${scanId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('scanPhase').textContent = 'Cancelling...';
+                document.getElementById('scanMessage').textContent =
+                    'Stopping scan. Partial results will be saved.';
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-x-octagon-fill me-1"></i>Cancel Scan';
+                isCancelling = false;
+            });
+    }
+
+    function pollStatus() {
+        fetch(`/api/scan/status/${scanId}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('scanPhase').textContent = data.phase || 'Scanning...';
+                document.getElementById('scanMessage').textContent = data.message || '';
+                document.getElementById('scanProgressBar').style.width = data.progress + '%';
+                document.getElementById('progressPercent').textContent = data.progress + '%';
+
+                // Redirect when scan is done, errored, or cancelled
+                if (data.status === 'completed' || data.status === 'error' || data.status === 'cancelled') {
+                    // Hide cancel button
+                    document.getElementById('cancelScanBtn').style.display = 'none';
+
+                    setTimeout(() => {
+                        window.location.href = `/scan/${scanId}`;
+                    }, 1000);
+                } else {
+                    setTimeout(pollStatus, pollInterval);
+                }
+            })
+            .catch(() => {
+                setTimeout(pollStatus, pollInterval * 2);
+            });
+    }
+
+    // Start polling
+    setTimeout(pollStatus, pollInterval);
+</script>
+{% endblock %}

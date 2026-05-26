@@ -1,0 +1,639 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-center py-5">
+    <div class="hero-glow"></div>
+    <div class="position-relative">
+        <div class="hero-icon mb-4">
+            <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <h1 class="display-4 fw-bold mb-3">
+            <span class="gradient-text">Web Vulnerability</span> Scanner
+        </h1>
+        <p class="lead text-muted mb-5 mx-auto" style="max-width: 600px;">
+            Detect SQL Injection, XSS, CSRF, Directory Traversal, Sensitive File Exposure,
+            and Security Misconfigurations — with a single click.
+        </p>
+
+        <!-- Scan Form -->
+        <div class="scan-form-wrapper mx-auto" style="max-width: 650px;">
+            <form action="{{ url_for('start_scan') }}" method="POST" class="scan-form" id="scanForm">
+                <!-- Hidden field — set to '1' by JS when AI toggle is ON -->
+                <input type="hidden" name="use_ai" id="useAiInput" value="0">
+
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text glass-input-icon">
+                        <i class="bi bi-globe2"></i>
+                    </span>
+                    <input type="text" name="target_url" class="form-control glass-input"
+                        placeholder="Enter target URL (e.g., https://example.com)" required autocomplete="url"
+                        id="targetUrl">
+                    <button type="submit" class="btn btn-scan" id="scanBtn">
+                        <i class="bi bi-search me-2"></i>Scan Now
+                    </button>
+                </div>
+
+                <!-- AI Mode Toggle -->
+                <div class="d-flex align-items-center justify-content-center gap-3 mt-3">
+                    <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" id="aiToggleWrapper"
+                         style="cursor:pointer;">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="aiModeToggle" style="width:2.4em;height:1.3em;cursor:pointer;"
+                               onchange="document.getElementById('useAiInput').value = this.checked ? '1' : '0'; document.getElementById('aiModeLabel').textContent = this.checked ? 'AI Agents ON' : 'AI Agents OFF'; document.getElementById('scanBtn').innerHTML = this.checked ? '<i class class=&quot;bi bi-cpu-fill me-2&quot;></i>AI Scan' : '<i class=&quot;bi bi-search me-2&quot;></i>Scan Now';">
+                        <label class="form-check-label d-flex align-items-center gap-2 mb-0" for="aiModeToggle" style="cursor:pointer;">
+                            <span style="font-size:0.8rem;color:var(--vx-text-muted);">Use AI Agents</span>
+                            <span id="aiModeLabel"
+                                  style="font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:12px;background:rgba(107,114,128,0.15);color:#6b7280;">AI Agents OFF</span>
+                        </label>
+                    </div>
+                    <span style="font-size:0.72rem;color:var(--vx-text-muted);" id="aiSubtext">
+                        <i class="bi bi-cpu me-1"></i>DeepSeek-R1 + Qwen2.5-Coder
+                    </span>
+                </div>
+                <script>
+                // Update toggle label color when switched ON
+                document.getElementById('aiModeToggle').addEventListener('change', function() {
+                    const lbl = document.getElementById('aiModeLabel');
+                    if (this.checked) {
+                        lbl.style.background = 'rgba(139,92,246,0.18)';
+                        lbl.style.color = '#a78bfa';
+                    } else {
+                        lbl.style.background = 'rgba(107,114,128,0.15)';
+                        lbl.style.color = '#6b7280';
+                    }
+                });
+                </script>
+
+                <div class="form-text text-muted mt-2">
+                    <i class="bi bi-info-circle"></i> Only scan websites you own or have permission to test
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     Security Checks Performed
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="security-checks-section py-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold mb-2">
+            <i class="bi bi-shield-fill-check me-2 section-title-icon"></i>
+            <span class="gradient-text">Security Checks</span> Performed
+        </h2>
+        <p class="text-muted mx-auto" style="max-width: 620px;">
+            Our scanner runs <strong>12+ specialized security tests</strong> across
+            <strong>6 core vulnerability categories</strong> to detect real threats,
+            misconfigurations, and data exposure risks in your web application.
+        </p>
+    </div>
+
+    <!-- ── CORE CHECKS divider ──────────────────────────────────── -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="core-checks-label">
+            <i class="bi bi-star-fill me-1" style="color:var(--vx-warning);font-size:0.65rem;"></i>
+            CORE CHECKS
+        </div>
+        <div style="flex:1;height:1px;background:var(--vx-border);"></div>
+        <small class="text-muted" style="white-space:nowrap;">6 primary vulnerability types</small>
+    </div>
+
+    <div class="row g-4 mb-5">
+
+        <!-- 1. XSS -->
+        <div class="col-md-6">
+            <div class="security-check-card glass-card p-4 h-100" data-glow="danger">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="check-icon-wrap check-icon-danger flex-shrink-0">
+                        <i class="bi bi-code-slash"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">Cross-Site Scripting (XSS)</h6>
+                            <span class="check-severity-tag tag-high">
+                                <i class="bi bi-exclamation-triangle-fill"></i> High Severity
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">
+                    Tests whether malicious JavaScript can be injected into web pages and executed in
+                    victims' browsers. Checks both URL parameters and HTML form fields for reflected XSS
+                    using real attack payloads including <code>&lt;script&gt;alert()&lt;/script&gt;</code>,
+                    <code>&lt;img onerror&gt;</code>, <code>&lt;svg onload&gt;</code>, and template injection.
+                </p>
+                <div class="check-what-we-test">
+                    <i class="bi bi-check2-circle text-success me-1"></i><small>URL parameter injection</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>Form field injection</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>10 XSS payloads</small>
+                </div>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- 2. SQL Injection -->
+        <div class="col-md-6">
+            <div class="security-check-card glass-card p-4 h-100" data-glow="danger">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="check-icon-wrap check-icon-danger flex-shrink-0">
+                        <i class="bi bi-database-fill-lock"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">SQL Injection (SQLi)</h6>
+                            <span class="check-severity-tag tag-high">
+                                <i class="bi bi-exclamation-triangle-fill"></i> High Severity
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">
+                    Detects if the application passes user input directly into database queries without
+                    sanitization. Uses error-based detection targeting MySQL, PostgreSQL, SQLite, MSSQL,
+                    and Oracle. Tests 12 SQLi payloads including UNION-based and boolean-based injections
+                    across all discoverable URL parameters and form fields.
+                </p>
+                <div class="check-what-we-test">
+                    <i class="bi bi-check2-circle text-success me-1"></i><small>Error-based detection</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>5 DB engines</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>Forms &amp; URL params</small>
+                </div>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- 3. Security Misconfiguration -->
+        <div class="col-md-6">
+            <div class="security-check-card glass-card p-4 h-100" data-glow="warning">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="check-icon-wrap check-icon-warning flex-shrink-0">
+                        <i class="bi bi-shield-fill-exclamation"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">Security Misconfiguration</h6>
+                            <span class="check-severity-tag tag-medium">
+                                <i class="bi bi-exclamation-circle-fill"></i> Medium Severity
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">
+                    Verifies 7 critical HTTP security headers — <code>Content-Security-Policy</code>,
+                    <code>Strict-Transport-Security</code>, <code>X-Frame-Options</code>,
+                    <code>X-Content-Type-Options</code>, <code>X-XSS-Protection</code>,
+                    <code>Referrer-Policy</code>, and <code>Permissions-Policy</code>.
+                    Also detects server version disclosure and checks HTTPS enforcement.
+                </p>
+                <div class="check-what-we-test">
+                    <i class="bi bi-check2-circle text-success me-1"></i><small>7 security headers</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>Version disclosure</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>HTTPS enforcement</small>
+                </div>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- 4. CSRF -->
+        <div class="col-md-6">
+            <div class="security-check-card glass-card p-4 h-100" data-glow="warning">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="check-icon-wrap check-icon-warning flex-shrink-0">
+                        <i class="bi bi-person-fill-slash"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">Cross-Site Request Forgery (CSRF)</h6>
+                            <span class="check-severity-tag tag-medium">
+                                <i class="bi bi-exclamation-circle-fill"></i> Medium Severity
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">
+                    Inspects every POST form for CSRF token protection. Checks 12 common token field names
+                    including <code>csrf_token</code>, <code>_token</code>, <code>authenticity_token</code>,
+                    <code>csrfmiddlewaretoken</code>, and <code>__RequestVerificationToken</code>.
+                    Forms without CSRF tokens allow attackers to trick logged-in users into unintended actions.
+                </p>
+                <div class="check-what-we-test">
+                    <i class="bi bi-check2-circle text-success me-1"></i><small>All POST forms</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>12 token names</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>State-change endpoints</small>
+                </div>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- 5. Directory Traversal -->
+        <div class="col-md-6">
+            <div class="security-check-card glass-card p-4 h-100" data-glow="danger">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="check-icon-wrap check-icon-danger flex-shrink-0">
+                        <i class="bi bi-folder-symlink-fill"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">Directory Traversal</h6>
+                            <span class="check-severity-tag tag-high">
+                                <i class="bi bi-exclamation-triangle-fill"></i> High Severity
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">
+                    Tests URL parameters that look like file references (<code>file</code>, <code>path</code>,
+                    <code>page</code>, <code>include</code>, <code>template</code>, etc.) with 6 traversal
+                    payloads including <code>../../../etc/passwd</code>, Windows variants, and URL-encoded
+                    forms. Detects full server filesystem access via manipulated paths.
+                </p>
+                <div class="check-what-we-test">
+                    <i class="bi bi-check2-circle text-success me-1"></i><small>6 traversal payloads</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>Linux &amp; Windows paths</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>URL-encoded variants</small>
+                </div>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- 6. Sensitive File Exposure -->
+        <div class="col-md-6">
+            <div class="security-check-card glass-card p-4 h-100" data-glow="danger">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="check-icon-wrap check-icon-danger flex-shrink-0">
+                        <i class="bi bi-file-earmark-lock2-fill"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <h6 class="fw-bold mb-0">Sensitive File Exposure</h6>
+                            <span class="check-severity-tag tag-high">
+                                <i class="bi bi-exclamation-triangle-fill"></i> High Severity
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted small mb-3">
+                    Probes 40+ known paths for publicly accessible files that should never be
+                    reachable — <code>.env</code> secrets, <code>.git/config</code>, database dumps
+                    (<code>db.sql</code>, <code>backup.zip</code>), <code>phpinfo.php</code>,
+                    <code>wp-config.php</code>, phpMyAdmin panels, error logs, and admin portals
+                    left unprotected on the web root.
+                </p>
+                <div class="check-what-we-test">
+                    <i class="bi bi-check2-circle text-success me-1"></i><small>40+ sensitive paths</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>Config, backup &amp; logs</small>
+                    <i class="bi bi-check2-circle text-success me-1 ms-3"></i><small>Admin panels &amp; dumps</small>
+                </div>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+    </div><!-- /core checks -->
+
+    <!-- ── ADDITIONAL CHECKS divider ───────────────────────────── -->
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="core-checks-label" style="background:var(--vx-accent-bg);color:var(--vx-accent);border-color:rgba(34,211,238,0.15);">
+            <i class="bi bi-plus-circle me-1" style="font-size:0.65rem;"></i>
+            ADDITIONAL CHECKS
+        </div>
+        <div style="flex:1;height:1px;background:var(--vx-border);"></div>
+        <small class="text-muted" style="white-space:nowrap;">6 supplementary tests</small>
+    </div>
+
+    <div class="row g-3">
+
+        <!-- Clickjacking -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" data-glow="warning">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap check-icon-warning" style="width:36px;height:36px;font-size:0.9rem;">
+                        <i class="bi bi-window-stack"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Clickjacking Protection</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    Checks for <code>X-Frame-Options</code> or <code>CSP frame-ancestors</code> to block
+                    hidden iframe embedding used for UI redress attacks.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- SSL / HTTPS -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" data-glow="warning">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap check-icon-warning" style="width:36px;height:36px;font-size:0.9rem;">
+                        <i class="bi bi-lock-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">SSL / HTTPS Security</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    Verifies the site uses HTTPS encryption. Plain HTTP sites expose all
+                    transmitted data to network eavesdroppers.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- Open Redirect -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" data-glow="warning">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap check-icon-warning" style="width:36px;height:36px;font-size:0.9rem;">
+                        <i class="bi bi-sign-turn-right-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Open Redirect</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    Tests <code>url</code>, <code>redirect</code>, <code>next</code>, <code>return</code>
+                    and 12 other redirect params for unvalidated external redirects.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- Sensitive Data in Source -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" data-glow="danger">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap check-icon-danger" style="width:36px;height:36px;font-size:0.9rem;">
+                        <i class="bi bi-eye-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Sensitive Data in Source</h6>
+                        <span class="check-severity-tag tag-high">
+                            <i class="bi bi-exclamation-triangle-fill"></i> High
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    Scans page HTML source for hardcoded API keys, passwords, tokens,
+                    AWS credentials, and DB connection strings left in client-side code.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- Weak Authentication -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" data-glow="warning">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap check-icon-warning" style="width:36px;height:36px;font-size:0.9rem;">
+                        <i class="bi bi-key-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Weak Authentication</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    Detects login forms lacking CAPTCHA or rate-limiting (brute-force susceptible)
+                    and credentials transmitted over unencrypted HTTP.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- Content Security Policy -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" data-glow="warning">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap check-icon-warning" style="width:36px;height:36px;font-size:0.9rem;">
+                        <i class="bi bi-file-earmark-lock-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Content Security Policy</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    Validates a CSP header is present and restricts which scripts, styles, and
+                    external resources browsers are allowed to load.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+    </div><!-- /additional checks -->
+
+    <!-- ── AI-POWERED CHECKS divider ──────────────────────────── -->
+    <div class="d-flex align-items-center gap-3 mb-4 mt-5">
+        <div class="core-checks-label"
+             style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.2);font-size:0.65rem;letter-spacing:0.08em;padding:4px 10px;border-radius:4px;white-space:nowrap;">
+            <i class="bi bi-cpu-fill me-1" style="font-size:0.65rem;"></i>
+            AI-POWERED CHECKS
+        </div>
+        <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(139,92,246,0.4),transparent);"></div>
+        <small class="text-muted" style="white-space:nowrap;">Powered by DeepSeek-R1 &amp; Qwen2.5-Coder</small>
+    </div>
+    <p class="text-muted small mb-4" style="max-width:680px;">
+        These <strong>AI-exclusive tests</strong> go beyond static rule-based detection.
+        DeepSeek-R1 reasons through complex attack scenarios while Qwen2.5-Coder crafts
+        custom exploit scripts on-the-fly — finding vulnerabilities that no signature list ever could.
+    </p>
+
+    <div class="row g-3">
+
+        <!-- SSRF -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" style="border-color:rgba(139,92,246,0.2);">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap flex-shrink-0"
+                         style="width:36px;height:36px;font-size:0.9rem;background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Server-Side Request Forgery (SSRF)</h6>
+                        <span class="check-severity-tag tag-high">
+                            <i class="bi bi-exclamation-triangle-fill"></i> High
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    AI probes URL parameters that fetch external resources, injecting internal addresses
+                    like <code>http://169.254.169.254</code> to detect cloud metadata server access,
+                    internal port scanning, and service enumeration.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- CORS -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" style="border-color:rgba(139,92,246,0.2);">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap flex-shrink-0"
+                         style="width:36px;height:36px;font-size:0.9rem;background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">CORS Misconfiguration</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    AI sends crafted <code>Origin:</code> headers with attacker-controlled domains and
+                    analyzes <code>Access-Control-Allow-Origin</code> responses to detect overly permissive
+                    CORS policies that allow credential theft from external sites.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- IDOR -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" style="border-color:rgba(139,92,246,0.2);">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap flex-shrink-0"
+                         style="width:36px;height:36px;font-size:0.9rem;background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-person-fill-gear"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Insecure Direct Object Reference (IDOR)</h6>
+                        <span class="check-severity-tag tag-high">
+                            <i class="bi bi-exclamation-triangle-fill"></i> High
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    AI identifies URL parameters that reference objects by sequential ID
+                    (<code>user_id=1</code>, <code>order=42</code>) and enumerates adjacent IDs to detect
+                    unauthorized cross-user data access without authentication bypasses.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- Business Logic / API -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" style="border-color:rgba(139,92,246,0.2);">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap flex-shrink-0"
+                         style="width:36px;height:36px;font-size:0.9rem;background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-bezier2"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">Business Logic &amp; API Discovery</h6>
+                        <span class="check-severity-tag tag-high">
+                            <i class="bi bi-exclamation-triangle-fill"></i> High
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    AI discovers hidden API endpoints (<code>/api/v1/admin</code>, <code>/internal</code>),
+                    tests negative-value price manipulation, coupon stacking, and workflow bypass flaws
+                    that no signature-based scanner could ever detect.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- HPP -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" style="border-color:rgba(139,92,246,0.2);">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap flex-shrink-0"
+                         style="width:36px;height:36px;font-size:0.9rem;background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-stack"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">HTTP Parameter Pollution (HPP)</h6>
+                        <span class="check-severity-tag tag-medium">
+                            <i class="bi bi-exclamation-circle-fill"></i> Medium
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    AI sends duplicate parameters (<code>?id=1&amp;id=2</code>) to detect inconsistent
+                    server-side parsing that can bypass WAF rules, override privilege checks, or
+                    corrupt application logic on different backend frameworks.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+        <!-- XXE -->
+        <div class="col-md-6 col-lg-4">
+            <div class="security-check-card glass-card p-3 h-100" style="border-color:rgba(139,92,246,0.2);">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="check-icon-wrap flex-shrink-0"
+                         style="width:36px;height:36px;font-size:0.9rem;background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid rgba(139,92,246,0.25);border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-file-earmark-code-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-semibold mb-0" style="font-size:0.85rem;">XML External Entity (XXE)</h6>
+                        <span class="check-severity-tag tag-high">
+                            <i class="bi bi-exclamation-triangle-fill"></i> High
+                        </span>
+                    </div>
+                </div>
+                <p class="text-muted small mb-0">
+                    AI locates XML-accepting endpoints and injects crafted DOCTYPE payloads with
+                    external entity references to detect file disclosure (<code>/etc/passwd</code>),
+                    SSRF-via-XML, and out-of-band data exfiltration through XML parsers.
+                </p>
+                <div class="check-card-glow"></div>
+            </div>
+        </div>
+
+    </div><!-- /ai-only checks -->
+</section>
+
+<!-- Recent Scans -->
+{% if recent_scans %}
+<section class="py-4">
+    <h4 class="fw-semibold mb-4">
+        <i class="bi bi-clock-history me-2"></i>Recent Scans
+    </h4>
+    <div class="row g-3">
+        {% for scan in recent_scans %}
+        <div class="col-md-6 col-lg-4">
+            <a href="{{ url_for('scan_status_page', scan_id=scan.id) }}" class="text-decoration-none">
+                <div class="glass-card scan-card p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span
+                            class="badge bg-{{ 'success' if scan.status == 'completed' else ('danger' if scan.status == 'error' else 'warning') }}">
+                            {{ scan.status | capitalize }}
+                        </span>
+                        <small class="text-muted">{{ scan.scan_date }}</small>
+                    </div>
+                    <p class="fw-medium mb-2 text-truncate text-light">{{ scan.target_url }}</p>
+                    {% if scan.status == 'completed' %}
+                    <div class="d-flex gap-3 small">
+                        <span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> {{ scan.high }} High</span>
+                        <span class="text-warning"><i class="bi bi-exclamation-circle-fill"></i> {{ scan.medium }} Med</span>
+                        <span class="text-info"><i class="bi bi-info-circle-fill"></i> {{ scan.low }} Low</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endblock %}
