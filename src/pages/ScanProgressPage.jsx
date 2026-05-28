@@ -74,6 +74,9 @@ export default function ScanProgressPage() {
   const esRef         = useRef(null);
   const pollTimerRef  = useRef(null);
   const isRunningRef  = useRef(true);
+  // SSE debounce: batch rapid-fire progress events into a single React render
+  const sseDebounceRef  = useRef(null);
+  const ssePendingRef   = useRef(null);
 
   /* ─── Live findings polling ─────────────────────────────────────── */
   const fetchLiveVulns = async () => {
@@ -116,24 +119,44 @@ export default function ScanProgressPage() {
 
         if (data.heartbeat && !data.done) return;
 
-        // Detect WAF phase from message/phase field
-        const hay = `${data.phase || ''} ${data.message || ''}`.toLowerCase();
-        if (hay.includes('waf') || hay.includes('firewall')) setWafDetected(true);
-
-        setProgress(prev => ({ ...prev, ...data }));
-        if (data.vulnerabilities) {
-          setLiveVulns(data.vulnerabilities);
-        }
-        retryCountRef.current = 0;
-
+        // Terminal events (completed / error / cancelled / done=true) must be
+        // applied immediately — they trigger navigation and stream teardown.
         const terminal = ['completed', 'error', 'cancelled'].includes(data.status) || data.done || data.progress >= 100;
+
         if (terminal) {
+          // Cancel any pending debounce and flush this event immediately.
+          if (sseDebounceRef.current) {
+            clearTimeout(sseDebounceRef.current);
+            sseDebounceRef.current = null;
+          }
+          const hay = `${data.phase || ''} ${data.message || ''}`.toLowerCase();
+          if (hay.includes('waf') || hay.includes('firewall')) setWafDetected(true);
+          setProgress(prev => ({ ...prev, ...data }));
+          if (data.vulnerabilities) setLiveVulns(data.vulnerabilities);
+          retryCountRef.current = 0;
           es.close();
           stopPolling();
           if (data.status === 'completed' || data.done) {
             setTimeout(() => navigate(`/scan/${scanId}/results`), 800);
           }
+          return;
         }
+
+        // Non-terminal event: buffer and apply after 150 ms of silence.
+        // This collapses bursts of 5-10 events/s down to ~6 renders/s,
+        // keeping the progress bar smooth without any visible lag.
+        ssePendingRef.current = data;
+        if (sseDebounceRef.current) clearTimeout(sseDebounceRef.current);
+        sseDebounceRef.current = setTimeout(() => {
+          const d = ssePendingRef.current;
+          if (!d) return;
+          const hay = `${d.phase || ''} ${d.message || ''}`.toLowerCase();
+          if (hay.includes('waf') || hay.includes('firewall')) setWafDetected(true);
+          setProgress(prev => ({ ...prev, ...d }));
+          if (d.vulnerabilities) setLiveVulns(d.vulnerabilities);
+          retryCountRef.current = 0;
+          sseDebounceRef.current = null;
+        }, 150);
       };
 
       es.onerror = async () => {
@@ -168,6 +191,7 @@ export default function ScanProgressPage() {
       if (esRef.current) esRef.current.close();
       if (retryTimer) clearTimeout(retryTimer);
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      if (sseDebounceRef.current) clearTimeout(sseDebounceRef.current);
       isRunningRef.current = false;
     };
   }, [scanId, navigate]);

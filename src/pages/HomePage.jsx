@@ -5,7 +5,8 @@ import api from '../api/client';
 import {
   Shield, Search, Globe, AlertTriangle, Lock,
   FileWarning, RefreshCw, ChevronRight, Clock, ExternalLink,
-  Cpu, Database, Share2, Key, Code2, GitBranch, Server, Radio
+  Cpu, Database, Share2, Key, Code2, GitBranch, Server, Radio,
+  Zap
 } from 'lucide-react';
 
 /* ── All attacks the scanner performs ─────────────────────────────────────── */
